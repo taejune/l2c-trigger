@@ -3,9 +3,13 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var project = require('./sonarcalls/project')
+var webhook = require('./sonarcalls/webhook')
+
+require('dotenv').config();
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var webhookRouter = require('./routes/webhook');
 
 var app = express();
 
@@ -20,7 +24,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/report', webhookRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -37,5 +41,16 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+project.create(process.env.PROJECT_ID, process.env.PROJECT_ID)
+.catch(e => {
+  console.error(e)
+})
+.then(() => {
+  webhook.register(process.env.PROJECT_ID, process.env.PROJECT_ID)
+  .catch(e => {
+    console.error(e)
+  })
+})
 
 module.exports = app;
