@@ -17,12 +17,6 @@ function createProject(id, name) {
             "Authorization": `Basic ${Buffer.from(`admin:admin`).toString('base64')}`
         },
     })
-    .then(response => {
-        if (!response.ok) {
-            throw `[${response.status}] Failed to create project - ${response.statusText}`
-        }
-        return response;
-    });
 }
 
 function setQualityProfile(lang, name, projectId) {
@@ -39,12 +33,6 @@ function setQualityProfile(lang, name, projectId) {
             "Authorization": `Basic ${Buffer.from(`admin:admin`).toString('base64')}`
         },
     })
-        .then(response => {
-            if (!response.ok) {
-                throw `[${response.status}] Failed to set QualityProfile - ${response.statusText}`
-            }
-            return response;
-        });
 }
 
 module.exports = {

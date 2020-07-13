@@ -3,8 +3,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var project = require('./sonarcalls/project')
-var webhook = require('./sonarcalls/webhook')
+var sonarcalls = require('./sonarcalls')
 
 require('dotenv').config();
 
@@ -42,15 +41,25 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-project.create(process.env.PROJECT_ID, process.env.PROJECT_ID)
-.catch(e => {
-  console.error(e)
-})
-.then(() => {
-  webhook.register(process.env.PROJECT_ID, process.env.PROJECT_ID)
+
+sonarcalls.project.create(process.env.PROJECT_ID, process.env.PROJECT_ID)
+  .then(res => res.json())
+  .then(data => {
+    console.log(data)
+    
+    sonarcalls.webhook.list(process.env.PROJECT_ID)
+    .then(res => res.json())
+    .then(data => {
+      const found = data.webhooks.find(e => e.name === process.env.PROJECT_ID)
+      if (!found) {
+        webhook.register(process.env.PROJECT_ID, process.env.PROJECT_ID)
+          .catch(e => { console.error(e)})
+      }
+    })
+  })
   .catch(e => {
     console.error(e)
   })
-})
+
 
 module.exports = app;

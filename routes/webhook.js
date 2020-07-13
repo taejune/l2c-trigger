@@ -9,7 +9,11 @@ const execSync = require('child_process').execSync
 router.post('/listen', function (req, res, next) {
     
     console.log("GOT analysis report by webhook!!!!")
-    console.log(JSON.stringify(res.body), null, 2)
+    console.log(JSON.stringify(res, null, ' '))
+    console.log("----")
+    console.log(res)
+    console.log("----")
+    console.log(res.body)
     // createL2CPipelineRun(projectId)
     // .then(data => {
     //     console.log(data);
