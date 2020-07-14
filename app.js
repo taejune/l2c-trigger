@@ -8,7 +8,6 @@ var sonarcalls = require('./sonarcalls')
 require('dotenv').config();
 
 var indexRouter = require('./routes/index');
-var webhookRouter = require('./routes/webhook');
 
 var app = express();
 
@@ -23,7 +22,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/report', webhookRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -44,15 +42,18 @@ app.use(function(err, req, res, next) {
 
 sonarcalls.project.create(process.env.PROJECT_ID, process.env.PROJECT_ID)
   .then(res => res.json())
-  .then(data => {
-    console.log(data)
+  .then(data1 => {
+    console.log(data1)
     
     sonarcalls.webhook.list(process.env.PROJECT_ID)
     .then(res => res.json())
-    .then(data => {
-      const found = data.webhooks.find(e => e.name === process.env.PROJECT_ID)
+    .then(data2 => {
+      console.log(data2)
+      const found = data2.webhooks.find(e => e.name === process.env.PROJECT_ID)
       if (!found) {
-        webhook.register(process.env.PROJECT_ID, process.env.PROJECT_ID)
+        sonarcalls.webhook.register(process.env.PROJECT_ID, process.env.PROJECT_ID, process.env.WEBHOOK_URL)
+          .then(response => response.json())
+          .then(data3 => { console.log(data3) })
           .catch(e => { console.error(e)})
       }
     })

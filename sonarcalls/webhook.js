@@ -9,15 +9,14 @@ const fetch = require('node-fetch')
  * @ secret: If provided, secret will be used as the key to generate the HMAC hex (lowercase) digest value in the 'X-Sonar-Webhook-HMAC-SHA256' header
  * @ url: Server endpoint that will receive the webhook payload, for example 'http://my_server/foo'. If HTTP Basic authentication is used, HTTPS is recommended to avoid man in the middle attacks. Example: 'https://myLogin:myPassword@my_server/foo'
  */
-function registerWebhook(name, projectId, secret) {
-    console.log(`Register webhook named ${name} for project ID: ${projectId}`)
+function registerWebhook(name, projectId, webhookUrl) {
+    console.log(`Register webhook named ${name} for project ID: ${projectId} to ${webhookUrl}`)
 
     const target = new url.URL(`${process.env.SONAR_URL}/api/webhooks/create`);
     let params = new url.URLSearchParams();
     params.append("name", name);
     params.append("project", projectId);
-    // params.append("secret", project);
-    params.append("url", `http://${process.env.SERVER}:${process.env.PORT}/report/listen`);
+    params.append("url", webhookUrl);
     target.search = params;
 
     return fetch(target.toString(), {
