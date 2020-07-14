@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: l2c-trigger
+  labels:           
+    app: l2c-trigger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: l2c-trigger
+  template:
+    metadata:
+      labels:
+        app: l2c-trigger
+    spec:
+      containers:
+      - name: sonarqube
+        image: azssi/l2c-trigger:v0.0.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 13000
+      volumeMounts:
+        - name: k8s-manifest
+          mountPath: /tmp/l2c-run-instance.yaml
+          subPath: l2c-run-instance.yaml
+    volumes:
+      - name: k8s-manifest
+        configMap:
+          name: l2c-run-templateinstance
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: l2c-trigger
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 13000
+    targetPort: 13000
+  selector:
+    app: l2c-trigger-demo
