@@ -21,6 +21,17 @@ router.post('/', function (req, res, next) {
     process.exit()
 });
 
+router.get('/success', function (req, res, next) {
+    execMigrate()
+    console.log('Terminate program')
+    process.exit()
+});
+
+router.get('/fail', function (req, res, next) {
+    console.log('Terminate program')
+    process.exit(1)
+});
+
 function execMigrate() {
     const manifestPath = "/tmp/l2c-run-instance.yaml"
 
