@@ -3,13 +3,16 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var sonarcalls = require('./sonarcalls')
 var fs = require('fs')
+const { fstat } = require('fs');
+var sonarcalls = require('./sonarcalls')
 
 require('dotenv').config();
 
+const Client = require('kubernetes-client').Client
+const Request = require('kubernetes-client/backends/request')
+
 var indexRouter = require('./routes/index');
-const { fstat } = require('fs');
 
 var app = express();
 
@@ -42,51 +45,40 @@ app.use(function(err, req, res, next) {
 });
 
 
-let nTryConnect = 0
-let isConnected = false
+async function waitDeploymentAvailable(depName, callback) {
+  try {
+      const backend = new Request(Request.config.getInCluster())
+      const client = new Client({ backend })
+      await client.loadSpec()
+      
+      const ns = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/namespace');
 
-app.set('ready', false)
-// 최초 연결 시까지 5초마다 연결 시도
-function looping(){
-  nTryConnect += 1
+      const stream = await client.apis.apps.v1.watch.namespaces(ns).deployments.getObjectStream()
+      stream.on('data', evt => {
+          // console.log('Event: ', JSON.stringify(evt, null, 2))
 
-  setTimeout(function() {
-    console.log(`try connect to sonarqube(${process.env.SONAR_URL}) ${nTryConnect} times.. `)
+          if (evt.object.metadata.name === depName) {
+              if (evt.object.status.readyReplicas > 0) {
+                  console.log(`Deployment(${depName}) is available`)
+                  callback()
+              }
+          }
+      })
 
-    initSoanr()
-    .then(() => {
-      console.log('connection success.')
-      setReady()
-    })
-    .catch(e => {
-      console.error(e)
-      looping()
-    })
-  }, 5000)
+  } catch (err) {
+      console.error('Error: ', err)
+  }
 }
 
-const TIMEOUT = 1000 * 60 * 3 // 3분
-setTimeout(() => {
-  if(!isConnected) {
-    console.error("Timeout() sonarqube connection")
-    process.exit(1)
-  }
-}, TIMEOUT)
-
-// looping()
-
-// 1분 후부터 연결시도 시작
-console.log("Try to connect sonarqube after 1 miniute...")
-setTimeout(() => {
-  looping()
-}, 1000 * 60)
+console.log('Wait until sonarqube available')
+waitDeploymentAvailable(`${process.env.PROJECT_ID}-l2c-sonar`, initSoanr)
 
 function initSoanr() {
   return sonarcalls.project.create(process.env.PROJECT_ID, process.env.PROJECT_ID)
   .then(res => res.json())
   .then(data1 => {
     console.log(data1)
-    
+
     sonarcalls.webhook.list(process.env.PROJECT_ID)
     .then(res => res.json())
     .then(data2 => {
@@ -99,15 +91,7 @@ function initSoanr() {
           .catch(e => { console.error(e)})
       }
     })
-  })  
-}
-
-// XXX: Setting for kubernetes readiness probe 
-function setReady() {
-  fs.writeFile('/tmp/ready', 1, (err) => {
-    if(err) throw err;
   })
-  console.log('Webhook is ready')
 }
 
 module.exports = app;

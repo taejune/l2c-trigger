@@ -9,11 +9,13 @@ const execSync = require('child_process').execSync
 
 router.post('/', function (req, res, next) {
 
-    console.log(`Receive message from sonarqube: \n${req.body}`)
-    const analysisResult = req.body.status
+    console.log(`Receive message from sonarqube: \n ${JSON.stringify(req.body)}`)
+    const analysisResult = req.body.qualityGate.status
     if(analysisResult === 'SUCCESS') {
+        console.log('migrate possible')
         execMigrate()
     } else {
+        console.log('migrate impossible')
         deployIDE()
     }
 });
@@ -37,6 +39,7 @@ function execMigrate() {
         return false
     }
 
+    console.log(`kubectl create -f ${manifestPath}`)
     const stdout = execSync(`kubectl create -f ${manifestPath}`)
     console.log(stdout.toString())
     
@@ -44,7 +47,15 @@ function execMigrate() {
 }
 
 function deployIDE() {
-    console.log("not implmeneted yet...")
+    const manifestPath = "/tmp/deploy-vscode-instance.yaml"
+
+    if(!fs.existsSync(manifestPath)) {
+      console.error('Cannot found manifest file: ' + manifestPath)
+      return false
+    }
+    console.log(`kubectl create -f ${manifestPath}`)
+    const stdout = execSync(`kubectl create -f ${manifestPath}`)
+    console.log(stdout.toString())
 }
 
 module.exports = router;
