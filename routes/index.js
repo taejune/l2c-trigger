@@ -16,9 +16,6 @@ router.post('/', function (req, res, next) {
     } else {
         deployIDE()
     }
-
-    console.log('Terminate program')
-    process.exit()
 });
 
 router.get('/success', function (req, res, next) {

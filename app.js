@@ -4,10 +4,12 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var sonarcalls = require('./sonarcalls')
+var fs = require('fs')
 
 require('dotenv').config();
 
 var indexRouter = require('./routes/index');
+const { fstat } = require('fs');
 
 var app = express();
 
@@ -40,7 +42,47 @@ app.use(function(err, req, res, next) {
 });
 
 
-sonarcalls.project.create(process.env.PROJECT_ID, process.env.PROJECT_ID)
+let nTryConnect = 0
+let isConnected = false
+
+app.set('ready', false)
+// 최초 연결 시까지 5초마다 연결 시도
+function looping(){
+  nTryConnect += 1
+
+  setTimeout(function() {
+    console.log(`try connect to sonarqube(${process.env.SONAR_URL}) ${nTryConnect} times.. `)
+
+    initSoanr()
+    .then(() => {
+      console.log('connection success.')
+      setReady()
+    })
+    .catch(e => {
+      console.error(e)
+      looping()
+    })
+  }, 5000)
+}
+
+const TIMEOUT = 1000 * 60 * 3 // 3분
+setTimeout(() => {
+  if(!isConnected) {
+    console.error("Timeout() sonarqube connection")
+    process.exit(1)
+  }
+}, TIMEOUT)
+
+// looping()
+
+// 1분 후부터 연결시도 시작
+console.log("Try to connect sonarqube after 1 miniute...")
+setTimeout(() => {
+  looping()
+}, 1000 * 60)
+
+function initSoanr() {
+  return sonarcalls.project.create(process.env.PROJECT_ID, process.env.PROJECT_ID)
   .then(res => res.json())
   .then(data1 => {
     console.log(data1)
@@ -57,10 +99,15 @@ sonarcalls.project.create(process.env.PROJECT_ID, process.env.PROJECT_ID)
           .catch(e => { console.error(e)})
       }
     })
-  })
-  .catch(e => {
-    console.error(e)
-  })
+  })  
+}
 
+// XXX: Setting for kubernetes readiness probe 
+function setReady() {
+  fs.writeFile('/tmp/ready', 1, (err) => {
+    if(err) throw err;
+  })
+  console.log('Webhook is ready')
+}
 
 module.exports = app;
