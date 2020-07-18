@@ -60,7 +60,7 @@ async function waitDeploymentAvailable(depName, callback) {
           if (evt.object.metadata.name === depName) {
               if (evt.object.status.readyReplicas > 0) {
                   console.log(`Deployment(${depName}) is available`)
-                  callback()
+                  setTimeout(() => { callback() }, 1000 * 15)
               }
           }
       })
@@ -74,6 +74,7 @@ console.log('Wait until sonarqube available')
 waitDeploymentAvailable(`${process.env.PROJECT_ID}-l2c-sonar`, initSoanr)
 
 function initSoanr() {
+  console.log(`init sonarqube for this project. Sonarqube URL: ${process.env.SONAR_URL}`)
   return sonarcalls.project.create(process.env.PROJECT_ID, process.env.PROJECT_ID)
   .then(res => res.json())
   .then(data1 => {
@@ -94,4 +95,4 @@ function initSoanr() {
   })
 }
 
-module.exports = app;
+module.exports = app

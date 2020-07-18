@@ -2,15 +2,16 @@ const process = require('process');
 const url = require("url");
 const fetch = require('node-fetch')
 
-
-function createProject(id, name) {
+function generateToken(name, login) {
     
-    console.log(`Create sonarqube Project: ID/ Name: ${id}/ ${name} to ${process.env.SONAR_URL}/api/projects/create`)
+    console.log(`Generate token which named ${name}`)
     
-    const target = new url.URL(`${process.env.SONAR_URL}/api/projects/create`);
+    const target = new url.URL(`${process.env.SONAR_URL}/api/user_tokens/generate`);
+    
     let params = new url.URLSearchParams();
-    params.append("project", id);
     params.append("name", name);
+    if(login) { params.append("login", login); }
+    
     target.search = params;
 
     return fetch(target.toString(), {
@@ -21,12 +22,16 @@ function createProject(id, name) {
     })
 }
 
-function setQualityProfile(lang, name, projectId) {
-    const target = new url.URL(`${process.env.SONAR_URL}/api/qualityprofiles/add_project`);
+function revokeToken(name, login) {
+    
+    console.log(`Revoke token which named ${name}`)
+    
+    const target = new url.URL(`${process.env.SONAR_URL}/api/user_tokens/revoke`);
+    
     let params = new url.URLSearchParams();
-    params.append("language", lang);
-    params.append("qualityProfile", name);
-    params.append("project", projectId);
+    params.append("name", name);
+    if(login) { params.append("login", login); }
+    
     target.search = params;
 
     return fetch(target.toString(), {
@@ -38,5 +43,6 @@ function setQualityProfile(lang, name, projectId) {
 }
 
 module.exports = {
-    create: createProject
+    create: generateToken,
+    delete: revokeToken
 }
