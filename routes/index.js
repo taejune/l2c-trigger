@@ -1,61 +1,43 @@
 const process = require('process');
-const url = require("url");
-var fetch = require("node-fetch");
+const util = require('util')
+const fs = require('fs')
+const { spawn } = require('child_process')
+
 var express = require('express');
-var fs = require('fs');
 var router = express.Router();
 
-const execSync = require('child_process').execSync
+const access = util.promisify(fs.access)
+const chmod = util.promisify(fs.chmod)
 
 router.post('/', function (req, res, next) {
 
     console.log(`Receive message from sonarqube: \n ${JSON.stringify(req.body)}`)
     const analysisResult = req.body.qualityGate.status
-    if(analysisResult === 'SUCCESS') {
-        console.log('migrate possible')
-        execMigrate()
+    if (analysisResult === 'SUCCESS') {
+        execScript(process.env.SUCCESS_HANDLER_PATH)
+            .catch(e => { console.error(e) })
     } else {
-        console.log('migrate impossible')
-        deployIDE()
+        execScript(process.env.FAIL_HANDLER_PATH)
+            .catch(e => { console.error(e) })
     }
 });
 
-router.get('/success', function (req, res, next) {
-    execMigrate()
-    console.log('Terminate program')
-    process.exit()
-});
+async function execScript(path) {
+    try {
+        await access(path)
+        await chmod(path, 0o755)
 
-router.get('/fail', function (req, res, next) {
-    console.log('Terminate program')
-    process.exit(1)
-});
-
-function execMigrate() {
-    const manifestPath = "/tmp/l2c-run-instance.yaml"
-
-    if(!fs.existsSync(manifestPath)) {
-        console.error('Cannot found manifest file: ' + manifestPath)
-        return false
-    }
-
-    console.log(`kubectl create -f ${manifestPath}`)
-    const stdout = execSync(`kubectl create -f ${manifestPath}`)
-    console.log(stdout.toString())
-    
-    return true
-}
-
-function deployIDE() {
-    const manifestPath = "/tmp/deploy-vscode-instance.yaml"
-
-    if(!fs.existsSync(manifestPath)) {
-      console.error('Cannot found manifest file: ' + manifestPath)
-      return false
-    }
-    console.log(`kubectl create -f ${manifestPath}`)
-    const stdout = execSync(`kubectl create -f ${manifestPath}`)
-    console.log(stdout.toString())
+        const child = spawn(`./${path}`)
+        child.stdout.on('data', (data) => {
+            console.log(`${data}`)
+        })
+        child.stderr.on('data', (data) => {
+            console.log(`${data}`)
+        })
+        child.on('close', (exitcode) => {
+            console.log(`process exited with code ${exitcode}`)
+        })
+    } catch (e) { throw e }
 }
 
 module.exports = router;

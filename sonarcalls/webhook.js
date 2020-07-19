@@ -15,8 +15,8 @@ function registerWebhook(name, projectId, webhookUrl) {
     const target = new url.URL(`${process.env.SONAR_URL}/api/webhooks/create`);
     let params = new url.URLSearchParams();
     params.append("name", name);
-    params.append("project", projectId);
     params.append("url", webhookUrl);
+    if (projectId) { params.append("project", projectId); }
     target.search = params;
 
     return fetch(target.toString(), {
