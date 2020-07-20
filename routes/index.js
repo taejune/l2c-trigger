@@ -11,7 +11,7 @@ router.post('/', function (req, res, next) {
     console.log(`${JSON.stringify(req.body, null, 2)}`)
     
     const analysisResult = req.body.qualityGate.status
-    if (analysisResult === 'SUCCESS') {
+    if (analysisResult === 'OK') {
         execScript(process.env.SUCCESS_HANDLER_PATH)
             .catch(e => { console.error(e) })
     } else {
