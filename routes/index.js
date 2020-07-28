@@ -1,8 +1,11 @@
 const process = require('process');
 const fs = require('fs')
 const { spawn } = require('child_process')
+const util = require('util')
 const Client = require('kubernetes-client').Client
 const client = new Client({ version: '1.13' })
+
+const readFile = util.promisify(fs.readFile)
 
 var express = require('express');
 var router = express.Router();
@@ -12,15 +15,14 @@ router.post('/', function (req, res, next) {
     console.log(`Receive message from sonarqube:`)
     console.log(`${JSON.stringify(req.body, null, 2)}`)
     
-    const projectName = req.body.proejct.key
+    const projectName = req.body.project.key
     const analysisResult = req.body.qualityGate.status
-    
-    console.log(`${projectName}: ${analysisResult}`)
+
     if (analysisResult === 'OK') {
-        execFromConfigMapData(projectName, process.env.SUCCESS_HANDLER_PATH)
+        execFromConfigMapData(projectName, process.env.SUCCESS_HANDLER_NAME)
             .catch(e => { console.error(e) })
     } else {
-        execFromConfigMapData(projectName, process.env.FAIL_HANDLER_PATH)
+        execFromConfigMapData(projectName, process.env.FAIL_HANDLER_NAME)
             .catch(e => { console.error(e) })
     }
 });
@@ -31,8 +33,6 @@ async function execFromConfigMapData(projectName, handlerName) {
 }
 
 async function loadConfigMapData(name) {
-    console.log(`Load configmap: ${name}`)
-    
     let configmap
     
     try {
@@ -48,8 +48,6 @@ async function loadConfigMapData(name) {
 }
 
 async function execScript(script) {
-    console.log(`script: ${script}`)
-
     try {
         const child = spawn('sh', ['-c', `${script}`])
 

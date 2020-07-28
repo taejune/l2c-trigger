@@ -3,12 +3,11 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var fs = require('fs')
-var sonarcalls = require('./sonarcalls')
 var util = require('util')
-const Client = require('kubernetes-client').Client
-
-const readFile = util.promisify(fs.readFile)
+var sonarcalls = require('./sonarcalls')
+var fs = require('fs')
+var readFile = util.promisify(fs.readFile)
+var Client = require('kubernetes-client').Client
 
 require('dotenv').config();
 
