@@ -6,13 +6,11 @@ var logger = require('morgan');
 var fs = require('fs')
 var sonarcalls = require('./sonarcalls')
 var util = require('util')
+const Client = require('kubernetes-client').Client
 
 const readFile = util.promisify(fs.readFile)
 
 require('dotenv').config();
-
-const Client = require('kubernetes-client').Client
-const Request = require('kubernetes-client/backends/request')
 
 var indexRouter = require('./routes/index');
 
@@ -52,10 +50,7 @@ waitDeploymentAvailable(process.env.SONAR_DEPLOYMENT_NAME, setupReportHandler)
 
 async function waitDeploymentAvailable(depName, callback) {
   try {
-    const backend = new Request(Request.config.getInCluster())
-    const client = new Client({ backend })
-    await client.loadSpec()
-
+    const client = new Client({ version: '1.13' })
     const ns = await readFile('/var/run/secrets/kubernetes.io/serviceaccount/namespace');
     const stream = await client.apis.apps.v1.watch.namespaces(ns).deployments.getObjectStream()
 
@@ -74,8 +69,10 @@ async function waitDeploymentAvailable(depName, callback) {
 }
 
 function setupReportHandler() {
+  const webhookName = 'l2c-precheck-controller'
   const hostname = (process.env.HOSTNAME)? process.env.HOSTNAME : os.hostname()
-  sonarcalls.webhook.register(process.env.PROJECT_NAME, '', `http://${hostname}:${process.env.PORT}`)
+  const webhookUrl = `http://${hostname}:${process.env.PORT}`
+  sonarcalls.webhook.register(webhookName, '', webhookUrl)
     .catch(e => { console.error(e) })
 }
 
