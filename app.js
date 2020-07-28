@@ -14,6 +14,8 @@ require('dotenv').config();
 
 var indexRouter = require('./routes/index');
 
+console.log('Running l2c-precheck-controller version 0.0.1')
+
 var app = express();
 
 // view engine setup
@@ -43,7 +45,6 @@ app.use(function (err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
-
 
 console.log('Wait until sonarqube available')
 waitDeploymentAvailable(process.env.SONAR_DEPLOYMENT_NAME, setupReportHandler)

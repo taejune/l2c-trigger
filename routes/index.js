@@ -14,36 +14,42 @@ router.post('/', function (req, res, next) {
     
     const projectName = req.body.proejct.key
     const analysisResult = req.body.qualityGate.status
-
-    const handler = loadConfigMapData(projectName)
+    
+    console.log(`${projectName}: ${analysisResult}`)
     if (analysisResult === 'OK') {
-        execScript(handler[process.env.SUCCESS_HANDLER_PATH])
+        execFromConfigMapData(projectName, process.env.SUCCESS_HANDLER_PATH)
             .catch(e => { console.error(e) })
     } else {
-        execScript(handler[process.env.FAIL_HANDLER_PATH])
+        execFromConfigMapData(projectName, process.env.FAIL_HANDLER_PATH)
             .catch(e => { console.error(e) })
     }
-    
-    res.end()
-    next()
 });
 
+async function execFromConfigMapData(projectName, handlerName) {
+    const handlers = await loadConfigMapData(projectName)
+    execScript(handlers[handlerName])
+}
 
 async function loadConfigMapData(name) {
+    console.log(`Load configmap: ${name}`)
+    
     let configmap
-
+    
     try {
         const ns = await readFile('/var/run/secrets/kubernetes.io/serviceaccount/namespace');
         configmap = await client.api.v1.namespaces(ns).configmaps(`${name}`).get()
-
+    
     } catch (e) {
         console.error(e)
     }
-
+    
+    console.log(`configmap: ${configmap}`)
     return configmap.body.data
 }
 
 async function execScript(script) {
+    console.log(`script: ${script}`)
+
     try {
         const child = spawn('sh', ['-c', `${script}`])
 
